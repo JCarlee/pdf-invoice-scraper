@@ -3,9 +3,11 @@
 # RUNNING THIS WILL ADD NEW RECORDS WITHOUT CHECKING FOR DUPLICATES
 
 # TO DO:
-# Check for duplicates before inserting - by creating unique identifier field in DB
+# Check for duplicates before inserting - by creating unique identifier field in DB - File + itm is not unique
 # IN490810010 Random barcode (quarantined from PDFs)
 # Handle T after price (waiting on DP and Krueger, quarantined from PDFs)
+# Write year month day
+# Isolate Desc to reduce code for execute statements
 
 # John Carlee
 # JCarlee@gmail.com
@@ -14,12 +16,16 @@
 import PyPDF2
 import sqlite3
 import re
+from time import strptime
 import os
+from tkinter import filedialog
+from tkinter import *
 
+root = Tk()
+root.withdraw()
 dir_path = os.getcwd()                                                     # Where main.py lives
 conn = sqlite3.connect(dir_path + "\\" + "invoice.db")                     # Connect to DB in main directory
 c = conn.cursor()
-pdf_path = 'D:\\Google Drive\\DaffodilParkerInvoice'
 short_list = []
 freight_invoice = ''
 rep = {" ST": "", " BU": "", " PC": "", "'": ""}
@@ -43,27 +49,38 @@ def represents_int(s):
 def create_file_list():
     """Create list of file paths if ending in .pdf"""
     files_output = []
-    for file in os.listdir(pdf_path):
-        filename = os.fsdecode(file)
-        if filename.endswith(".pdf"):
-            files_output.append(pdf_path + '\\' + filename)
-        else:
-            pass
-    return files_output
+    local_path = 'D:\\Google Drive\\DaffodilParkerInvoice'
+    while True:
+        try:
+            os.listdir(local_path)
+            break
+        except OSError:
+            local_path = filedialog.askdirectory()
+    for file in os.listdir(local_path):
+            filename = os.fsdecode(file)
+            if filename.endswith(".pdf"):
+                files_output.append(local_path + '\\' + filename)
+            else:
+                pass
+    return files_output, local_path
 
 
 def kreuger_invoice_info(lng_lst):
     """Extract Invoice number and date from PDF"""
     invoice_number = ''
-    invoice_day = ''
+    invoice_myd = ''
     for z in lng_lst:
         if 'Invoice #' in z:
             invoice_number = z.replace('Invoice # ', '')
         elif 'Invoice Date' in z:
-            invoice_day = z.replace('Invoice Date ', '')
+            invoice_myd = z.replace('Invoice Date ', '')
         elif 'Credit #' in z:
             invoice_number = z.replace('Credit # ', '')
-    return invoice_number, invoice_day
+    invoice_year = invoice_myd[-4:]
+    invoice_mnth = invoice_myd[:3]
+    invoice_month = strptime(invoice_mnth, '%b').tm_mon
+    invoice_day = invoice_myd[4:6]
+    return invoice_number, invoice_myd, invoice_year, invoice_month, int(invoice_day)
 
 
 def negative_val(val1):
@@ -81,7 +98,15 @@ def define_bunch(current_list):
     return qty_fn, itm_fn, prc_fn, price_fn, item_type_fn, price_total_raw_fn
 
 
-files = create_file_list()
+def freight_sql(lng_lst):
+    freight_price = lng_lst[frt_index].replace('$', '').strip()
+    sql_freight = '''INSERT INTO freight_test(invoice_no, invoice_date, year, month, day, price, source, file)
+                VALUES('{0}', '{1}', {2}, {3}, {4}, {5}, '{6}', '{7}');''' \
+        .format(invoice_no, invoice_date, year, month, day, freight_price, 'Krueger', file_name)
+    c.execute(sql_freight)
+
+
+files, pdf_path = create_file_list()
 
 
 for pdf in files:
@@ -92,16 +117,19 @@ for pdf in files:
     for page in range(no_of_pages):
         pageObj = pdfReader.getPage(page)
         pdf_text += pageObj.extractText()
-    long_list = pdf_text.splitlines()                               # Split PDF text into list
+    long_list = pdf_text.splitlines()
+    for index, line in enumerate(long_list):
+        if 'Freight' in line:
+            frt_index = index + 1
     if 'Invoice #' in long_list[4]:
         short_list = long_list[16:-15]
     elif 'Credit #' in long_list:
         short_list = long_list[16:-9]
-    invoice_no, invoice_date = kreuger_invoice_info(long_list)
+    invoice_no, invoice_date, year, month, day = kreuger_invoice_info(long_list)
     name_check = [1]
     markers = []
     for index, line in enumerate(short_list):
-        if represents_int(line) and (index - name_check[-1] != 1):  # Account for numeric product names
+        if represents_int(line) and (index - name_check[-1] != 1):
             markers.append(index)
             name_check.append(index)
     mark_first = markers[:-1]
@@ -121,24 +149,23 @@ for pdf in files:
         # print(invoice_no, ' | ', invoice_date, ' | ', 'Krueger', ' | ', qty, ' | ', itm, ' | ', item, ' | ',
         #       item_type, ' | ', price, ' | ', price_total, ' | ', file_name)
         if y - x == 5:
-            sql = '''INSERT INTO test(invoice, date, source, qty, itm, item, type, price, price_total, file)
-            VALUES('{0}', '{1}', '{2}', {3}, '{4}', '{5}', '{6}', {7}, {8}, '{9}');'''\
-                .format(invoice_no, invoice_date, 'Krueger', qty, itm, item, item_type, price, price_total, file_name)
+            sql = '''INSERT INTO test(invoice, date, year, month, day, source, qty, itm, item, type, price, price_total, 
+            file)
+            VALUES('{0}', '{1}', {2}, {3}, {4}, '{5}', {6}, '{7}', '{8}', '{9}', {10}, {11}, '{12}');'''\
+            .format(invoice_no, invoice_date, year, month, day, 'Krueger', qty, itm, item, item_type, price,
+                    price_total, file_name)
             c.execute(sql)
         elif y-x == 6:
             desc = cur_list[5]
-            sql = '''INSERT INTO test(invoice, date, source, qty, itm, item, type, price, price_total, desc, file)
-                  VALUES('{0}', '{1}', '{2}', {3}, '{4}', '{5}', '{6}', {7}, {8}, '{9}', '{10}');'''\
-                .format(invoice_no, invoice_date, 'Krueger', qty, itm, item, item_type, price, price_total, desc,
-                        file_name)
+            sql = '''INSERT INTO test(invoice, date, year, month, day, source, qty, itm, item, type, price, price_total,
+             desc, file)
+                  VALUES('{0}', '{1}', {2}, {3}, {4}, '{5}', {6}, '{7}', '{8}', '{9}', {10}, {11}, '{12}', '{13}');'''\
+                .format(invoice_no, invoice_date, year, month, day, 'Krueger', qty, itm, item, item_type, price,
+                        price_total, desc, file_name)
             c.execute(sql)
         if "Freight" in long_list and file_name != freight_invoice:
             freight_invoice = file_name
-            freight_price = long_list[-12]
-            sql = '''INSERT INTO freight_test(invoice_no, invoice_date, price, source, file)
-            VALUES('{0}', '{1}', '{2}', '{3}', '{4}');'''\
-            .format(invoice_no, invoice_date, freight_price, 'Krueger', file_name)
-            c.execute(sql)
+            freight_sql(long_list)
     pdfFileObj.close()
 conn.commit()
 conn.close()
