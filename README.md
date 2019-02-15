@@ -10,6 +10,7 @@ After seeing a florist friend struggle with handling hundreds of paper invoices,
 * sqlite3
 * re
 * os
+* tkinter
 
 ```
 pip install PyPDF2
