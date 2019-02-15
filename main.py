@@ -6,8 +6,7 @@
 # Check for duplicates before inserting - by creating unique identifier field in DB - File + itm is not unique
 # IN490810010 Random barcode (quarantined from PDFs)
 # Handle T after price (waiting on DP and Krueger, quarantined from PDFs)
-# Write year month day
-# Isolate Desc to reduce code for execute statements
+# [Optional] Isolate Desc to reduce code for execute statements
 
 # John Carlee
 # JCarlee@gmail.com
@@ -15,7 +14,6 @@
 
 import PyPDF2
 import sqlite3
-import re
 from time import strptime
 import os
 from tkinter import filedialog
@@ -84,11 +82,13 @@ def kreuger_invoice_info(lng_lst):
 
 
 def negative_val(val1):
+    """Change a value to negative"""
     price1 = -float(val1)
     return price1
 
 
 def define_bunch(current_list):
+    """Define multiple variables for insert statement"""
     qty_fn = current_list[0]
     itm_fn = current_list[1]
     prc_fn = current_list[2].split()
@@ -98,7 +98,29 @@ def define_bunch(current_list):
     return qty_fn, itm_fn, prc_fn, price_fn, item_type_fn, price_total_raw_fn
 
 
+def no_desc_sql():
+    """SQL statement execution if no description"""
+    sql_five = '''INSERT INTO test(invoice, date, year, month, day, source, qty, itm, item, type, price, price_total, 
+    file)
+    VALUES('{0}', '{1}', {2}, {3}, {4}, '{5}', {6}, '{7}', '{8}', '{9}', {10}, {11}, '{12}');''' \
+        .format(invoice_no, invoice_date, year, month, day, 'Krueger', qty, itm, item, item_type, price,
+                price_total, file_name)
+    c.execute(sql_five)
+
+
+def desc_sql(c_list):
+    """SQL statement execution if description"""
+    desc = c_list[5]
+    sql_desc = '''INSERT INTO test(invoice, date, year, month, day, source, qty, itm, item, type, price, price_total,
+     desc, file)
+          VALUES('{0}', '{1}', {2}, {3}, {4}, '{5}', {6}, '{7}', '{8}', '{9}', {10}, {11}, '{12}', '{13}');''' \
+        .format(invoice_no, invoice_date, year, month, day, 'Krueger', qty, itm, item, item_type, price,
+                price_total, desc, file_name)
+    c.execute(sql_desc)
+
+
 def freight_sql(lng_lst):
+    """SQL statement for freight table"""
     freight_price = lng_lst[frt_index].replace('$', '').strip()
     sql_freight = '''INSERT INTO freight_test(invoice_no, invoice_date, year, month, day, price, source, file)
                 VALUES('{0}', '{1}', {2}, {3}, {4}, {5}, '{6}', '{7}');''' \
@@ -149,20 +171,9 @@ for pdf in files:
         # print(invoice_no, ' | ', invoice_date, ' | ', 'Krueger', ' | ', qty, ' | ', itm, ' | ', item, ' | ',
         #       item_type, ' | ', price, ' | ', price_total, ' | ', file_name)
         if y - x == 5:
-            sql = '''INSERT INTO test(invoice, date, year, month, day, source, qty, itm, item, type, price, price_total, 
-            file)
-            VALUES('{0}', '{1}', {2}, {3}, {4}, '{5}', {6}, '{7}', '{8}', '{9}', {10}, {11}, '{12}');'''\
-            .format(invoice_no, invoice_date, year, month, day, 'Krueger', qty, itm, item, item_type, price,
-                    price_total, file_name)
-            c.execute(sql)
+            no_desc_sql()
         elif y-x == 6:
-            desc = cur_list[5]
-            sql = '''INSERT INTO test(invoice, date, year, month, day, source, qty, itm, item, type, price, price_total,
-             desc, file)
-                  VALUES('{0}', '{1}', {2}, {3}, {4}, '{5}', {6}, '{7}', '{8}', '{9}', {10}, {11}, '{12}', '{13}');'''\
-                .format(invoice_no, invoice_date, year, month, day, 'Krueger', qty, itm, item, item_type, price,
-                        price_total, desc, file_name)
-            c.execute(sql)
+            desc_sql(cur_list)
         if "Freight" in long_list and file_name != freight_invoice:
             freight_invoice = file_name
             freight_sql(long_list)
