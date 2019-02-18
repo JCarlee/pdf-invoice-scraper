@@ -2,7 +2,7 @@
 Scrape text-based PDF invoices, insert lines items into SQLite database, and generate summary reports.
 
 ## Motivation
-After seeing a florist friend struggle with handling hundreds of paper invoices, I wanted to relieve the majority of work.
+After seeing a friend struggle with handling hundreds of paper invoices, I wanted to relieve the majority of work.
 
 ## Dependencies
 * Python 3
