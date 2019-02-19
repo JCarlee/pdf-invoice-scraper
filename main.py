@@ -1,12 +1,4 @@
-# NOTES:
 # ONLY SUPPORTS KRUEGER INVOICES
-# RUNNING THIS WILL ADD NEW RECORDS WITHOUT CHECKING FOR DUPLICATES
-
-# TO DO:
-# Check for duplicates before inserting - by creating unique identifier field in DB - File + itm is not unique
-# IN490810010 Random barcode (quarantined from PDFs)
-# Handle T after price (waiting on DP and Krueger, quarantined from PDFs)
-# [Optional] Isolate Desc to reduce code for execute statements
 
 # John Carlee
 # JCarlee@gmail.com
@@ -32,6 +24,7 @@ pattern = re.compile("|".join(rep.keys()))
 rep2 = {"$": "", ",": ""}
 rep2 = dict((re.escape(g), h) for g, h in rep2.items())
 pattern2 = re.compile("|".join(rep2.keys()))
+total_items = 0
 
 
 # Check if string is actually an int
@@ -47,13 +40,7 @@ def represents_int(s):
 def create_file_list():
     """Create list of file paths if ending in .pdf"""
     files_output = []
-    local_path = 'D:\\Google Drive\\DaffodilParkerInvoice'
-    while True:
-        try:
-            os.listdir(local_path)
-            break
-        except OSError:
-            local_path = filedialog.askdirectory()
+    local_path = filedialog.askdirectory()
     for file in os.listdir(local_path):
             filename = os.fsdecode(file)
             if filename.endswith(".pdf"):
@@ -100,22 +87,22 @@ def define_bunch(current_list):
 
 def no_desc_sql():
     """SQL statement execution if no description"""
-    sql_five = '''INSERT INTO test(invoice, date, year, month, day, source, qty, itm, item, type, price, price_total, 
-    file)
-    VALUES('{0}', '{1}', {2}, {3}, {4}, '{5}', {6}, '{7}', '{8}', '{9}', {10}, {11}, '{12}');''' \
+    sql_five = '''INSERT INTO item_test(invoice, date, year, month, day, source, qty, itm, item, type, price, 
+    price_total, taxable, file)
+    VALUES('{0}', '{1}', {2}, {3}, {4}, '{5}', {6}, '{7}', '{8}', '{9}', {10}, {11}, {12}, '{13}');''' \
         .format(invoice_no, invoice_date, year, month, day, 'Krueger', qty, itm, item, item_type, price,
-                price_total, file_name)
+                price_total, taxable, file_name)
     c.execute(sql_five)
 
 
 def desc_sql(c_list):
     """SQL statement execution if description"""
     desc = c_list[5]
-    sql_desc = '''INSERT INTO test(invoice, date, year, month, day, source, qty, itm, item, type, price, price_total,
-     desc, file)
-          VALUES('{0}', '{1}', {2}, {3}, {4}, '{5}', {6}, '{7}', '{8}', '{9}', {10}, {11}, '{12}', '{13}');''' \
+    sql_desc = '''INSERT INTO item_test(invoice, date, year, month, day, source, qty, itm, item, type, price, 
+    price_total, taxable, desc, file)
+          VALUES('{0}', '{1}', {2}, {3}, {4}, '{5}', {6}, '{7}', '{8}', '{9}', {10}, {11}, {12}, '{13}', '{14}');''' \
         .format(invoice_no, invoice_date, year, month, day, 'Krueger', qty, itm, item, item_type, price,
-                price_total, desc, file_name)
+                price_total, taxable, desc, file_name)
     c.execute(sql_desc)
 
 
@@ -159,10 +146,12 @@ for pdf in files:
     file_name = pdf[len(pdf_path) + 1:-len('.pdf')]
     for x, y in zip(mark_first, mark_last):
         cur_list = short_list[x:y]
-        # if 'T' in cur_list[3]:
-        #     print(pdf)
         qty, itm, prc, price, item_type, price_total_raw = define_bunch(cur_list)
         price_total = pattern2.sub(lambda m: rep2[re.escape(m.group(0))], price_total_raw)
+        taxable = 0
+        if 'T' in cur_list[3]:
+            taxable = 1
+            price_total = price_total.replace('T', '')
         if "Credit Invoice" in long_list[3]:
             price, price_total = negative_val(price), negative_val(price_total)
         name_list = list(filter(None, cur_list[4].split('  ')))
@@ -171,8 +160,10 @@ for pdf in files:
         # print(invoice_no, ' | ', invoice_date, ' | ', 'Krueger', ' | ', qty, ' | ', itm, ' | ', item, ' | ',
         #       item_type, ' | ', price, ' | ', price_total, ' | ', file_name)
         if y - x == 5:
+            total_items += 1
             no_desc_sql()
         elif y-x == 6:
+            total_items += 1
             desc_sql(cur_list)
         if "Freight" in long_list and file_name != freight_invoice:
             freight_invoice = file_name
@@ -180,3 +171,4 @@ for pdf in files:
     pdfFileObj.close()
 conn.commit()
 conn.close()
+print('{0} records added to database'.format(total_items))
