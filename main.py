@@ -74,16 +74,21 @@ def select_pdfs():
     #     pass
 
 
+def calc_avg():
+    pass
+
+
 Button(master, text='Connect to DB', command=connect_db).grid(row=0, column=1, columnspan=2, sticky=E+W, pady=4,
                                                               padx=10)
-
 Button(master, text='Process PDF Directory', command=select_file_list).grid(row=1, column=1, sticky=W, pady=4,
                                                                             padx=(10, 5))
-Button(master, text='Process PDFs', command=select_pdfs).grid(row=1, column=2, sticky=E, pady=4, padx=(5, 10))
+Button(master, text='Process Specific PDFs', command=select_pdfs).grid(row=1, column=2, sticky=E, pady=4, padx=(5, 10))
 
 Button(master, text='Commit and Close Connection', command=close_connection).grid(row=2, column=1, columnspan=2,
                                                                                   sticky=W+E, pady=4, padx=10)
-Button(master, text='Quit', command=master.destroy).grid(row=3, column=1, columnspan=2, sticky=W+E, pady=4, padx=10)
+Button(master, text='Calculate Weighted Averages', command=calc_avg).grid(row=3, column=1, columnspan=2,
+                                                                 sticky=W+E, pady=4, padx=10)
+Button(master, text='Quit', command=master.destroy).grid(row=4, column=1, columnspan=2, sticky=W+E, pady=4, padx=10)
 
 
 def kreuger_invoice_info(lng_lst):
