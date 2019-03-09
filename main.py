@@ -10,6 +10,8 @@ from tkinter import filedialog
 from tkinter import *
 import pathlib
 import datetime
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 master = Tk()
 master.title("dp Invoice")
@@ -19,6 +21,7 @@ now = datetime.datetime.now()
 
 
 def connect_db():
+    """Connect to SQLite Database"""
     global c
     global conn
     dir_path = os.getcwd()  # Where main.py lives
@@ -63,32 +66,37 @@ def select_file_list():
 
 def select_pdfs():
     """Create list of files from direct selection"""
-    # try:
     files_output = filedialog.askopenfilenames(title="Select file", filetypes=(("PDF files", "*.pdf"),
                                                                                ("all files", "*.*")))
     sad = pathlib.Path(files_output[0])
     local_path = str(sad.parent)
     dir_loop(files_output, local_path)
-    # except:
-    #     print("Failure")
-    #     pass
 
 
 def calc_avg():
-    pass
-
-
-Button(master, text='Connect to DB', command=connect_db).grid(row=0, column=1, columnspan=2, sticky=E+W, pady=4,
-                                                              padx=10)
-Button(master, text='Process PDF Directory', command=select_file_list).grid(row=1, column=1, sticky=W, pady=4,
-                                                                            padx=(10, 5))
-Button(master, text='Process Specific PDFs', command=select_pdfs).grid(row=1, column=2, sticky=E, pady=4, padx=(5, 10))
-
-Button(master, text='Commit and Close Connection', command=close_connection).grid(row=2, column=1, columnspan=2,
-                                                                                  sticky=W+E, pady=4, padx=10)
-Button(master, text='Calculate Weighted Averages', command=calc_avg).grid(row=3, column=1, columnspan=2,
-                                                                 sticky=W+E, pady=4, padx=10)
-Button(master, text='Quit', command=master.destroy).grid(row=4, column=1, columnspan=2, sticky=W+E, pady=4, padx=10)
+    """Query for weighted price averages and write to Google Sheet"""
+    sql_avg = """SELECT itm, item, SUM(qty), SUM(QTY * price) / SUM(qty)
+    FROM items
+    Where credit = 0
+    GROUP BY itm;"""
+    c.execute(sql_avg)
+    rows = c.fetchall()
+    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+    credentials = ServiceAccountCredentials.from_json_keyfile_name('DP Invoice-fb57448f59de.json', scope)
+    gc = gspread.authorize(credentials)
+    avg_sheet = gc.open('dp Invoice Database').worksheet("Average")
+    row_end = str(len(rows) + 1)
+    itm_range = avg_sheet.range('A2:A' + row_end)
+    item_range = avg_sheet.range('B2:B' + row_end)
+    count_range = avg_sheet.range('C2:C' + row_end)
+    avg_range = avg_sheet.range('D2:D' + row_end)
+    for row, itm, item, count, avg in zip(rows, itm_range, item_range, count_range, avg_range):
+        itm.value, item.value, count.value, avg.value = row[0], row[1], row[2], row[3]
+    avg_sheet.update_cells(itm_range)
+    avg_sheet.update_cells(item_range)
+    avg_sheet.update_cells(count_range)
+    avg_sheet.update_cells(avg_range)
+    print("Google Sheet Updated")
 
 
 def kreuger_invoice_info(lng_lst):
@@ -152,7 +160,8 @@ def desc_sql(c_list, invoice_no, invoice_date, year, month, day, qty, itm, item,
 def freight_sql(lng_lst, frt_index, invoice_no, invoice_date, year, month, day, file_name):
     """SQL statement for freight table"""
     freight_price = lng_lst[frt_index].replace('$', '').strip()
-    sql_freight = '''INSERT INTO freight_test(invoice_no, invoice_date, year, month, day, price, source, file, date_added)
+    sql_freight = '''INSERT INTO freight_test(invoice_no, invoice_date, year, month, day, price, source, file, 
+    date_added)
                 VALUES('{0}', '{1}', {2}, {3}, {4}, {5}, '{6}', '{7}', '{8}');''' \
         .format(invoice_no, invoice_date, year, month, day, freight_price, 'Krueger', file_name,
                 now.strftime("%Y-%m-%d %H:%M"))
@@ -227,8 +236,16 @@ def dir_loop(files_output, local_path):
     print(total_items)
 
 
-# def console_items(total_items):
-#     print('{0} records added to database'.format(total_items))
+Button(master, text='Connect to DB', command=connect_db).grid(row=0, column=1, columnspan=2, sticky=E+W, pady=4,
+                                                              padx=10)
+Button(master, text='Process PDF Directory', command=select_file_list).grid(row=1, column=1, sticky=W, pady=4,
+                                                                            padx=(10, 5))
+Button(master, text='Process Specific PDFs', command=select_pdfs).grid(row=1, column=2, sticky=E, pady=4, padx=(5, 10))
 
+Button(master, text='Commit and Close Connection', command=close_connection).grid(row=2, column=1, columnspan=2,
+                                                                                  sticky=W+E, pady=4, padx=10)
+Button(master, text='Calculate Weighted Averages', command=calc_avg).grid(row=3, column=1, columnspan=2,
+                                                                          sticky=W+E, pady=4, padx=10)
+Button(master, text='Quit', command=master.destroy).grid(row=4, column=1, columnspan=2, sticky=W+E, pady=4, padx=10)
 
 mainloop()
