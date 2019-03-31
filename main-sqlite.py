@@ -24,7 +24,7 @@ def connect_db():
     """Connect to SQLite Database"""
     global c
     global conn
-    dir_path = os.getcwd()  # Where main.py lives
+    dir_path = os.getcwd()  # Where main-sqlite.py lives
     conn = sqlite3.connect(dir_path + "\\" + "invoice.db")  # Connect to DB in main directory
     c = conn.cursor()
     print('Connected to ' + dir_path + "\\" + "invoice.db")

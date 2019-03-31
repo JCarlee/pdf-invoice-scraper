@@ -1,6 +1,12 @@
 # PDF Invoice Scraper
 Scrape text-based PDF invoices, insert lines items into SQLite database, and generate summary reports.
 
+## Author
+**John Carlee** - JCarlee@gmail.com
+
+I am 9 year veteran in the Geographic Information Science and Cartography space. **I am currently looking for new job 
+opportunities leveraging my GIS skills with a heavy focus on Python development.**
+
 ## Motivation
 After seeing a friend struggle with handling hundreds of paper invoices, I wanted to relieve the majority of work.
 
@@ -11,9 +17,11 @@ After seeing a friend struggle with handling hundreds of paper invoices, I wante
 * re
 * os
 * tkinter
+* gspread
 
 ```
 pip install PyPDF2
+pip install gspread
 ```
 
 ## How it Works
@@ -23,6 +31,3 @@ pip install PyPDF2
 * Commit insert statements
 
 _This specialized script works specifically for Krueger Wholesale invoices created for daffodil*parker in Madison, WI._
-## Author
-
-* **John Carlee** - JCarlee@gmail.com
