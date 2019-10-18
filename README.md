@@ -2,7 +2,7 @@
 Scrape text-based PDF invoices, insert lines items into SQLite database, and generate summary reports.
 
 ## Author
-**John Carlee** - JCarlee@gmail.com
+**John Carlee** - [Email me](mailto:JCarlee@gmail.com)
 
 I am 9 year veteran in the Geographic Information Science and Cartography space.
 
