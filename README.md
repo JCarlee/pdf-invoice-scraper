@@ -4,8 +4,7 @@ Scrape text-based PDF invoices, insert lines items into SQLite database, and gen
 ## Author
 **John Carlee** - JCarlee@gmail.com
 
-I am 9 year veteran in the Geographic Information Science and Cartography space. **I am currently looking for new job 
-opportunities leveraging my GIS skills with a heavy focus on Python development.**
+I am 9 year veteran in the Geographic Information Science and Cartography space.
 
 ## Motivation
 After seeing a friend struggle with handling hundreds of paper invoices, I wanted to relieve the majority of work.
