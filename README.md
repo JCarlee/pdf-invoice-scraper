@@ -1,6 +1,6 @@
 # PDF Invoice Processor
 
-A Python application that automates processing of text-based PDF invoices into a SQLite database with a simple GUI interface. Specifically designed for Krueger Wholesale invoices used by daffodil*parker in Madison, WI.
+A Python application that automates processing of text-based PDF invoices into a SQLite database with a simple GUI interface. Specifically designed for client.
 
 ## Features
 
