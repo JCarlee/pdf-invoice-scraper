@@ -1,32 +1,24 @@
-# PDF Invoice Scraper
-Scrape text-based PDF invoices, insert lines items into SQLite database, and generate summary reports.
+# PDF Invoice Processor
 
-## Author
-**John Carlee** - [Email me](mailto:JCarlee@gmail.com)
+A Python application that automates processing of text-based PDF invoices into a SQLite database with a simple GUI interface. Specifically designed for Krueger Wholesale invoices used by daffodil*parker in Madison, WI.
 
-I am 9 year veteran in the Geographic Information Science and Cartography space.
+## Features
 
-## Motivation
-After seeing a friend struggle with handling hundreds of paper invoices, I wanted to relieve the majority of work.
+- PDF invoice batch processing
+- Automated text extraction and parsing
+- SQLite database storage
+- Weighted average price calculations
+- Google Sheets integration for reporting
+- Simple GUI interface
 
-## Dependencies
-* Python 3
-* PyPDF2
-* sqlite3
-* re
-* os
-* tkinter
-* gspread
+## Requirements
 
-```
+- Python 3.x
+- SQLite3
+- Google Sheets API credentials
+
+### Python Dependencies
+```bash
 pip install PyPDF2
 pip install gspread
-```
-
-## How it Works
-* Loop through a directory of PDF invoices
-* Extract line items, modify with specific handlers
-* Insert line items into SQlite database
-* Commit insert statements
-
-_This specialized script works specifically for Krueger Wholesale invoices created for daffodil*parker in Madison, WI._
+pip install oauth2client
